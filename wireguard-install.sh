@@ -322,14 +322,19 @@ function newClient() {
 	echo ""
 	echo "The client name must consist of alphanumeric character(s). It may also include underscores or dashes and can't exceed 15 chars."
 
-	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
+	
+	until [[ $CLIENT_NAME =~ ^[a-zA-Z0-9_-]+$ ]]; do
 		read -rp "Client name: " -e CLIENT_NAME
+	done
+	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
 		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${CLIENT_EXISTS} != 0 ]]; then
 			echo ""
 			echo -e "${ORANGE}A client with the specified name was already created, please choose another name.${NC}"
 			echo ""
+
+			exit 1
 		fi
 	done
 
@@ -346,9 +351,13 @@ function newClient() {
 		exit 1
 	fi
 
+	APPROVE_IP=${APPROVE_IP:-n}
+
 	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
-		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
+		if [[ $APPROVE_IP =~ n ]]; then
+			read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
+		fi
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
@@ -356,12 +365,19 @@ function newClient() {
 			echo ""
 			echo -e "${ORANGE}A client with the specified IPv4 was already created, please choose another IPv4.${NC}"
 			echo ""
+
+			if [[ ! $APPROVE_IP =~ n ]]; then
+				exit 4
+			fi
+
 		fi
 	done
 
 	BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
-		read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
+		if [[ $APPROVE_IP =~ n ]]; then
+			read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
+		fi
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
 		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/128" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
@@ -369,6 +385,10 @@ function newClient() {
 			echo ""
 			echo -e "${ORANGE}A client with the specified IPv6 was already created, please choose another IPv6.${NC}"
 			echo ""
+
+			if [[ ! $APPROVE_IP =~ n ]]; then
+				exit 4
+			fi
 		fi
 	done
 
@@ -379,7 +399,7 @@ function newClient() {
 
 	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
 
-	# Create client file and add the server as a peer
+	Create client file and add the server as a peer
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
