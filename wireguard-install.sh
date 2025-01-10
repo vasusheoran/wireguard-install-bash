@@ -51,11 +51,13 @@ function checkOS() {
 			echo "Your version of Fedora (${VERSION_ID}) is not supported. Please use Fedora 32 or later"
 			exit 1
 		fi
-	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
+	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky'  ]]; then
 		if [[ ${VERSION_ID} == 7* ]]; then
 			echo "Your version of CentOS (${VERSION_ID}) is not supported. Please use CentOS 8 or later"
 			exit 1
 		fi
+	elif [[ ${OS} == 'amzn' ]]; then
+		OS=amzn
 	elif [[ -e /etc/oracle-release ]]; then
 		source /etc/os-release
 		OS=oracle
@@ -216,7 +218,7 @@ function installWireGuard() {
 			dnf install -y wireguard-dkms
 		fi
 		dnf install -y wireguard-tools iptables qrencode
-	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
+	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]] || [[ $OS == 'amzn' ]]; then
 		if [[ ${VERSION_ID} == 8* ]]; then
 			yum install -y epel-release elrepo-release
 			yum install -y kmod-wireguard
@@ -399,7 +401,7 @@ function newClient() {
 
 	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
 
-	Create client file and add the server as a peer
+	# Create client file and add the server as a peer
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
@@ -496,7 +498,7 @@ function uninstallWg() {
 				dnf remove -y --noautoremove wireguard-dkms
 				dnf copr disable -y jdoss/wireguard
 			fi
-		elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
+		elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]] || [[ ${OS} == 'amzn' ]]; then
 			yum remove -y --noautoremove wireguard-tools
 			if [[ ${VERSION_ID} == 8* ]]; then
 				yum remove --noautoremove kmod-wireguard qrencode
