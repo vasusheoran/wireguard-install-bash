@@ -429,6 +429,7 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 		echo ""
 	fi
 
+	cp ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf${NC} /tmp
 	echo -e "${GREEN}Your client config file is in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf${NC}"
 }
 
